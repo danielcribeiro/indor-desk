@@ -91,7 +91,8 @@ export async function GET(
           name,
           description,
           order_index,
-          is_required
+          is_required,
+          allowed_profiles
         )
       `)
       .order('order_index');
@@ -142,7 +143,7 @@ export async function GET(
         ...note,
         activity_id: note.activity_id ?? null,
       }))
-      .sort((a: { created_at: string }, b: { created_at: string }) => 
+      .sort((a: { created_at: string }, b: { created_at: string }) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
@@ -155,14 +156,14 @@ export async function GET(
       const stageActivities = stage.stage_activities || [];
       const activities = stageActivities
         .sort((a: { order_index: number }, b: { order_index: number }) => a.order_index - b.order_index)
-        .map((activity: { id: string; name: string; description: string; order_index: number; is_required: boolean }) => {
+        .map((activity: { id: string; name: string; description: string; order_index: number; is_required: boolean; allowed_profiles: string[] | null }) => {
           const clientActivity = clientActivities?.find(
             (ca) => ca.activity_id === activity.id
           );
           return {
             ...activity,
             requires_note: false,
-            allowed_profiles: [],
+            allowed_profiles: activity.allowed_profiles || [],
             isCompleted: clientActivity?.is_completed || false,
             completedAt: clientActivity?.completed_at,
             completedBy: clientActivity?.completed_by,

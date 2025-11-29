@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';
     const stageId = searchParams.get('stage_id');
+    const status = searchParams.get('status');
 
     const offset = (page - 1) * limit;
 
@@ -85,8 +86,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Recalcular total após filtro de etapa
-    const filteredCount = stageId ? processedClients?.length || 0 : count || 0;
+    // Filtrar por status se especificado
+    if (status) {
+      processedClients = processedClients?.filter((client) =>
+        client.currentStageStatus === status
+      );
+    }
+
+    // Recalcular total após filtros
+    const filteredCount = (stageId || status) ? processedClients?.length || 0 : count || 0;
 
     return NextResponse.json({
       clients: processedClients,

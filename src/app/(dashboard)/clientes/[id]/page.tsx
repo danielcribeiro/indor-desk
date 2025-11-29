@@ -58,6 +58,7 @@ interface Activity {
   description?: string | null;
   order_index: number;
   is_required: boolean;
+  allowed_profiles?: string[] | null;
   isCompleted: boolean;
   completedAt?: string | null;
   completedBy?: string | null;
@@ -157,7 +158,7 @@ export default function ClienteDetalhePage() {
       });
 
       if (response.ok) {
-      const data = await response.json();
+        const data = await response.json();
         // Processar notas para incluir nome da atividade
         const processedNotes = (data.client.notes || []).map((note: Note) => {
           if (note.activity_id) {
@@ -402,12 +403,28 @@ export default function ClienteDetalhePage() {
 
     setIsSubmitting(true);
     try {
-      await handleActivityToggle(
-        activityModal.activity.id,
-        activityModal.stageId,
-        noteContent || undefined
-      );
-      handleCloseActivityModal();
+      const response = await fetch(`/api/clients/${clientId}/activities/${activityModal.activity.id}/toggle`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ note_content: noteContent || undefined }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(data.is_completed ? 'Atividade concluída!' : 'Atividade desmarcada!');
+        fetchClient();
+        handleCloseActivityModal();
+      } else {
+        // Mantém o modal aberto e mostra o erro
+        toast.error(data.error || 'Erro ao alterar atividade');
+      }
+    } catch (error) {
+      console.error('Error toggling activity:', error);
+      toast.error('Erro ao alterar atividade');
     } finally {
       setIsSubmitting(false);
     }
@@ -471,8 +488,8 @@ export default function ClienteDetalhePage() {
   // Filtrar notas da atividade atual
   const activityNotes = activityModal.activity
     ? (client?.notes || []).filter(
-        (note) => note.activity_id === activityModal.activity?.id
-      )
+      (note) => note.activity_id === activityModal.activity?.id
+    )
     : [];
 
   if (isLoading) {
@@ -499,7 +516,7 @@ export default function ClienteDetalhePage() {
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2 md:gap-4">
-            <Link href="/clientes">
+          <Link href="/clientes">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Voltar</span>
@@ -586,158 +603,158 @@ export default function ClienteDetalhePage() {
                 onClick={() => setShowChildData(!showChildData)}
                 className="w-full"
               >
-              <CardHeader className="cursor-pointer hover:bg-surface-50 transition-colors rounded-t-xl">
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <User className="w-5 h-5 text-primary-500" />
-                    Dados da Criança
-                  </div>
-                  {showChildData ? (
-                    <ChevronUp className="w-5 h-5 text-secondary-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-secondary-400" />
-                  )}
-                </CardTitle>
-              </CardHeader>
-            </button>
-            {showChildData && (
-              <CardContent className="space-y-4 animate-fade-in">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-primary-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-secondary-700">{client.name}</p>
-                    {client.gender && (
-                      <p className="text-sm text-secondary-500 capitalize">{client.gender}</p>
+                <CardHeader className="cursor-pointer hover:bg-surface-50 transition-colors rounded-t-xl">
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <User className="w-5 h-5 text-primary-500" />
+                      Dados da Criança
+                    </div>
+                    {showChildData ? (
+                      <ChevronUp className="w-5 h-5 text-secondary-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-secondary-400" />
                     )}
-                  </div>
-                </div>
-                  {client.birth_date && (
-                  <div className="flex items-center gap-3 text-secondary-600">
-                    <Calendar className="w-5 h-5 text-secondary-400" />
+                  </CardTitle>
+                </CardHeader>
+              </button>
+              {showChildData && (
+                <CardContent className="space-y-4 animate-fade-in">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-primary-600" />
+                    </div>
                     <div>
-                      <p className="text-sm">
-                        {new Date(client.birth_date).toLocaleDateString('pt-BR')}
-                      </p>
-                      <p className="text-xs text-secondary-400">
-                        {calculateAge(client.birth_date)} anos
-                      </p>
+                      <p className="font-medium text-secondary-700">{client.name}</p>
+                      {client.gender && (
+                        <p className="text-sm text-secondary-500 capitalize">{client.gender}</p>
+                      )}
                     </div>
                   </div>
-                )}
-              </CardContent>
-            )}
-          </Card>
-
-          <Card>
-            <button
-              onClick={() => setShowGuardianData(!showGuardianData)}
-              className="w-full"
-            >
-              <CardHeader className="cursor-pointer hover:bg-surface-50 transition-colors rounded-t-xl">
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <User className="w-5 h-5 text-primary-500" />
-                    Responsável
-                  </div>
-                  {showGuardianData ? (
-                    <ChevronUp className="w-5 h-5 text-secondary-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-secondary-400" />
+                  {client.birth_date && (
+                    <div className="flex items-center gap-3 text-secondary-600">
+                      <Calendar className="w-5 h-5 text-secondary-400" />
+                      <div>
+                        <p className="text-sm">
+                          {new Date(client.birth_date).toLocaleDateString('pt-BR')}
+                        </p>
+                        <p className="text-xs text-secondary-400">
+                          {calculateAge(client.birth_date)} anos
+                        </p>
+                      </div>
+                    </div>
                   )}
-                </CardTitle>
-              </CardHeader>
-            </button>
-            {showGuardianData && (
-              <CardContent className="space-y-3 animate-fade-in">
+                </CardContent>
+              )}
+            </Card>
+
+            <Card>
+              <button
+                onClick={() => setShowGuardianData(!showGuardianData)}
+                className="w-full"
+              >
+                <CardHeader className="cursor-pointer hover:bg-surface-50 transition-colors rounded-t-xl">
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <User className="w-5 h-5 text-primary-500" />
+                      Responsável
+                    </div>
+                    {showGuardianData ? (
+                      <ChevronUp className="w-5 h-5 text-secondary-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-secondary-400" />
+                    )}
+                  </CardTitle>
+                </CardHeader>
+              </button>
+              {showGuardianData && (
+                <CardContent className="space-y-3 animate-fade-in">
                   {client.guardian_name && (
-                  <div className="flex items-center gap-3 text-secondary-600">
-                    <User className="w-5 h-5 text-secondary-400" />
-                    <span>{client.guardian_name}</span>
+                    <div className="flex items-center gap-3 text-secondary-600">
+                      <User className="w-5 h-5 text-secondary-400" />
+                      <span>{client.guardian_name}</span>
                     </div>
                   )}
                   {client.guardian_phone && (
-                  <div className="flex items-center gap-3 text-secondary-600">
-                    <Phone className="w-5 h-5 text-secondary-400" />
-                    <span>{client.guardian_phone}</span>
-                  </div>
-                )}
-                {client.guardian_email && (
-                  <div className="flex items-center gap-3 text-secondary-600">
-                    <Mail className="w-5 h-5 text-secondary-400" />
-                    <span>{client.guardian_email}</span>
-                  </div>
-                )}
-                {client.address && (
-                  <div className="flex items-start gap-3 text-secondary-600">
-                    <MapPin className="w-5 h-5 text-secondary-400 mt-0.5" />
-                    <span>{client.address}</span>
+                    <div className="flex items-center gap-3 text-secondary-600">
+                      <Phone className="w-5 h-5 text-secondary-400" />
+                      <span>{client.guardian_phone}</span>
                     </div>
-                )}
-                {!client.guardian_name &&
-                  !client.guardian_phone &&
-                  !client.guardian_email &&
-                  !client.address && (
-                    <p className="text-secondary-400 text-sm italic">
-                      Nenhuma informação do responsável cadastrada.
-                    </p>
                   )}
-              </CardContent>
+                  {client.guardian_email && (
+                    <div className="flex items-center gap-3 text-secondary-600">
+                      <Mail className="w-5 h-5 text-secondary-400" />
+                      <span>{client.guardian_email}</span>
+                    </div>
+                  )}
+                  {client.address && (
+                    <div className="flex items-start gap-3 text-secondary-600">
+                      <MapPin className="w-5 h-5 text-secondary-400 mt-0.5" />
+                      <span>{client.address}</span>
+                    </div>
+                  )}
+                  {!client.guardian_name &&
+                    !client.guardian_phone &&
+                    !client.guardian_email &&
+                    !client.address && (
+                      <p className="text-secondary-400 text-sm italic">
+                        Nenhuma informação do responsável cadastrada.
+                      </p>
+                    )}
+                </CardContent>
+              )}
+            </Card>
+
+            {client.google_drive_link && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FolderOpen className="w-5 h-5 text-primary-500" />
+                    Google Drive
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-secondary-600">
+                    Acesse a pasta do Google Drive deste cliente
+                  </p>
+                  <a
+                    href={client.google_drive_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <Button className="w-full" variant="primary">
+                      <FolderOpen className="w-4 h-4" />
+                      Abrir Google Drive
+                      <ExternalLink className="w-4 h-4 ml-auto" />
+                    </Button>
+                  </a>
+                  <a
+                    href={client.google_drive_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-primary-600 hover:text-primary-700 transition-colors text-xs"
+                  >
+                    <span className="truncate">{client.google_drive_link}</span>
+                  </a>
+                </CardContent>
+              </Card>
             )}
-          </Card>
 
-          {client.google_drive_link && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FolderOpen className="w-5 h-5 text-primary-500" />
-                  Google Drive
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-secondary-600">
-                  Acesse a pasta do Google Drive deste cliente
-                </p>
-                <a
-                  href={client.google_drive_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block"
-                >
-                  <Button className="w-full" variant="primary">
-                    <FolderOpen className="w-4 h-4" />
-                    Abrir Google Drive
-                    <ExternalLink className="w-4 h-4 ml-auto" />
-                  </Button>
-                </a>
-                <a
-                  href={client.google_drive_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-primary-600 hover:text-primary-700 transition-colors text-xs"
-                >
-                  <span className="truncate">{client.google_drive_link}</span>
-                </a>
-              </CardContent>
-            </Card>
-          )}
-
-          {client.observations && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-primary-500" />
-                  Observações
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-secondary-600 whitespace-pre-wrap">
-                  {client.observations}
-                </p>
-              </CardContent>
-            </Card>
-          )}
+            {client.observations && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary-500" />
+                    Observações
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-secondary-600 whitespace-pre-wrap">
+                    {client.observations}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
@@ -759,6 +776,15 @@ export default function ClienteDetalhePage() {
                   <Badge variant={activityModal.activity.isCompleted ? 'success' : 'warning'}>
                     {activityModal.activity.isCompleted ? 'Concluída' : 'Pendente'}
                   </Badge>
+                  {/* Badge de perfis permitidos */}
+                  {activityModal.activity.allowed_profiles && activityModal.activity.allowed_profiles.length > 0 && (
+                    <Badge variant="info">
+                      Responsável: {activityModal.activity.allowed_profiles
+                        .map(profileId => profiles.find(p => p.id === profileId)?.name)
+                        .filter(name => name && name !== 'Administrador')
+                        .join(', ') || 'Qualquer perfil'}
+                    </Badge>
+                  )}
                 </div>
                 <span className="text-sm text-secondary-500">
                   Etapa: <span className="font-medium">{activityModal.stageName}</span>
@@ -803,7 +829,7 @@ export default function ClienteDetalhePage() {
                   rows={3}
                   className="mb-3"
                 />
-                
+
                 {/* Opção de criar pendência */}
                 <div className="mb-3 p-3 bg-white rounded-lg border border-surface-200">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -815,7 +841,7 @@ export default function ClienteDetalhePage() {
                     />
                     <span className="text-sm text-secondary-700">Esta nota gera uma pendência</span>
                   </label>
-                  
+
                   {createsPendingTask && (
                     <div className="mt-3 pl-6">
                       <label className="block text-xs font-medium text-secondary-600 mb-1">
@@ -849,7 +875,7 @@ export default function ClienteDetalhePage() {
                     {createsPendingTask ? 'Registrar Nota e Pendência' : 'Registrar Nota'}
                   </Button>
                 </div>
-          </div>
+              </div>
 
               {/* Ações principais */}
               <div className="flex flex-wrap gap-3 pt-4 border-t border-surface-200 mt-auto">
@@ -873,7 +899,7 @@ export default function ClienteDetalhePage() {
                     Voltar para Pendente
                   </Button>
                 )}
-                
+
                 {client.google_drive_link && (
                   <a
                     href={client.google_drive_link}
@@ -895,7 +921,7 @@ export default function ClienteDetalhePage() {
                 <span>Histórico de Notas</span>
                 <Badge variant="neutral">{activityNotes.length}</Badge>
               </h4>
-              
+
               <div className="flex-1 overflow-y-auto pr-2 min-h-0">
                 {activityNotes.length > 0 ? (
                   <div className="space-y-3">
@@ -929,10 +955,10 @@ export default function ClienteDetalhePage() {
                     <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p>Nenhuma nota registrada para esta atividade.</p>
                   </div>
-            )}
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
         )}
       </Modal>
 
@@ -946,17 +972,15 @@ export default function ClienteDetalhePage() {
         {pendingTaskModal.task && (
           <div className="space-y-6">
             {/* Informações da pendência */}
-            <div className={`p-4 rounded-xl border ${
-              pendingTaskModal.task.status === 'resolved'
-                ? 'bg-green-50 border-green-200'
-                : 'bg-amber-50 border-amber-200'
-            }`}>
+            <div className={`p-4 rounded-xl border ${pendingTaskModal.task.status === 'resolved'
+              ? 'bg-green-50 border-green-200'
+              : 'bg-amber-50 border-amber-200'
+              }`}>
               <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                  pendingTaskModal.task.status === 'resolved'
-                    ? 'bg-green-100'
-                    : 'bg-amber-100'
-                }`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${pendingTaskModal.task.status === 'resolved'
+                  ? 'bg-green-100'
+                  : 'bg-amber-100'
+                  }`}>
                   {pendingTaskModal.task.status === 'resolved' ? (
                     <Check className="w-5 h-5 text-green-600" />
                   ) : (
@@ -965,22 +989,20 @@ export default function ClienteDetalhePage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h4 className={`font-semibold ${
-                      pendingTaskModal.task.status === 'resolved'
-                        ? 'text-green-800'
-                        : 'text-amber-800'
-                    }`}>
+                    <h4 className={`font-semibold ${pendingTaskModal.task.status === 'resolved'
+                      ? 'text-green-800'
+                      : 'text-amber-800'
+                      }`}>
                       {pendingTaskModal.task.title}
                     </h4>
                     {pendingTaskModal.task.status === 'resolved' && (
                       <Badge variant="success" className="text-xs">Resolvida</Badge>
                     )}
                   </div>
-                  <div className={`mt-2 text-sm space-y-1 ${
-                    pendingTaskModal.task.status === 'resolved'
-                      ? 'text-green-700'
-                      : 'text-amber-700'
-                  }`}>
+                  <div className={`mt-2 text-sm space-y-1 ${pendingTaskModal.task.status === 'resolved'
+                    ? 'text-green-700'
+                    : 'text-amber-700'
+                    }`}>
                     <p>Etapa: <span className="font-medium">{pendingTaskModal.stageName}</span></p>
                     {pendingTaskModal.task.assigned_profile && (
                       <p>Atribuída a: <span className="font-medium">{pendingTaskModal.task.assigned_profile.name}</span></p>

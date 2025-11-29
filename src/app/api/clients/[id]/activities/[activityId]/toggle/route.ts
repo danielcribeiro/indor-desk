@@ -107,8 +107,16 @@ export async function POST(
       if (user?.role !== 'admin') {
         const userProfileId = user?.profile_id;
         if (!userProfileId || !activity.allowed_profiles.includes(userProfileId)) {
+          // Buscar nomes dos perfis permitidos
+          const { data: allowedProfiles } = await supabase
+            .from('profiles')
+            .select('name')
+            .in('id', activity.allowed_profiles);
+
+          const profileNames = allowedProfiles?.map(p => p.name).join(', ') || 'perfis específicos';
+
           return NextResponse.json(
-            { error: 'Você não tem permissão para alterar esta atividade' },
+            { error: `Apenas usuários com os perfis "${profileNames}" podem realizar esta atividade` },
             { status: 403 }
           );
         }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
 import { Button } from '@/components/ui/Button';
@@ -47,6 +47,7 @@ interface Stage {
 
 export default function ClientesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { accessToken } = useAuthStore();
   const toast = useToastStore();
 
@@ -59,10 +60,11 @@ export default function ClientesPage() {
   });
   const [search, setSearch] = useState('');
   const [selectedStage, setSelectedStage] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState(searchParams.get('status') || '');
   const [stages, setStages] = useState<Stage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchClients = useCallback(async (page = 1, searchTerm = '', stageFilter = '') => {
+  const fetchClients = useCallback(async (page = 1, searchTerm = '', stageFilter = '', statusFilter = '') => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({
@@ -70,6 +72,7 @@ export default function ClientesPage() {
         limit: '10',
         ...(searchTerm && { search: searchTerm }),
         ...(stageFilter && { stage_id: stageFilter }),
+        ...(statusFilter && { status: statusFilter }),
       });
 
       const response = await fetch(`/api/clients?${params}`, {
@@ -111,23 +114,30 @@ export default function ClientesPage() {
   }, [accessToken]);
 
   useEffect(() => {
-    fetchClients();
+    fetchClients(1, '', '', selectedStatus);
     fetchStages();
-  }, [fetchClients, fetchStages]);
+  }, [fetchClients, fetchStages, selectedStatus]);
 
   const handleSearch = () => {
-    fetchClients(1, search, selectedStage);
+    fetchClients(1, search, selectedStage, selectedStatus);
   };
 
   const handleStageChange = (stageId: string) => {
     setSelectedStage(stageId);
-    fetchClients(1, search, stageId);
+    fetchClients(1, search, stageId, selectedStatus);
+  };
+
+  const handleStatusChange = (status: string) => {
+    setSelectedStatus(status);
+    fetchClients(1, search, selectedStage, status);
   };
 
   const handleClearFilters = () => {
     setSearch('');
     setSelectedStage('');
-    fetchClients(1, '', '');
+    setSelectedStatus('');
+    router.push('/clientes');
+    fetchClients(1, '', '', '');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -170,7 +180,19 @@ export default function ClientesPage() {
               />
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="flex-1 sm:flex-none sm:w-64">
+              <div className="flex-1 sm:flex-none sm:w-48">
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-surface-300 bg-white text-secondary-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all"
+                >
+                  <option value="">Todos os status</option>
+                  <option value="in_progress">Em Andamento</option>
+                  <option value="completed">Concluídos</option>
+                  <option value="not_started">Não Iniciado</option>
+                </select>
+              </div>
+              <div className="flex-1 sm:flex-none sm:w-48">
                 <select
                   value={selectedStage}
                   onChange={(e) => handleStageChange(e.target.value)}
@@ -192,7 +214,7 @@ export default function ClientesPage() {
           </div>
 
           {/* Filtros ativos */}
-          {(search || selectedStage) && (
+          {(search || selectedStage || selectedStatus) && (
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-1 text-sm text-secondary-600">
                 <Filter className="w-4 h-4" />
@@ -204,8 +226,19 @@ export default function ClientesPage() {
                   <button
                     onClick={() => {
                       setSearch('');
-                      fetchClients(1, '', selectedStage);
+                      fetchClients(1, '', selectedStage, selectedStatus);
                     }}
+                    className="ml-1 hover:text-red-600"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              )}
+              {selectedStatus && (
+                <Badge variant="warning" className="flex items-center gap-1">
+                  Status: {selectedStatus === 'in_progress' ? 'Em Andamento' : selectedStatus === 'completed' ? 'Concluídos' : 'Não Iniciado'}
+                  <button
+                    onClick={() => handleStatusChange('')}
                     className="ml-1 hover:text-red-600"
                   >
                     <X className="w-3 h-3" />
@@ -291,15 +324,15 @@ export default function ClientesPage() {
                         client.currentStageStatus === 'completed'
                           ? 'success'
                           : client.currentStageStatus === 'in_progress'
-                          ? 'info'
-                          : 'neutral'
+                            ? 'info'
+                            : 'neutral'
                       }
                     >
                       {client.currentStageStatus === 'completed'
                         ? 'Concluído'
                         : client.currentStageStatus === 'in_progress'
-                        ? 'Em andamento'
-                        : 'Não iniciado'}
+                          ? 'Em andamento'
+                          : 'Não iniciado'}
                     </Badge>
                   </td>
                   <td className="text-right">
@@ -332,7 +365,7 @@ export default function ClientesPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => fetchClients(pagination.page - 1, search, selectedStage)}
+              onClick={() => fetchClients(pagination.page - 1, search, selectedStage, selectedStatus)}
               disabled={pagination.page === 1}
             >
               <ChevronLeft className="w-4 h-4" />
@@ -344,7 +377,7 @@ export default function ClientesPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => fetchClients(pagination.page + 1, search, selectedStage)}
+              onClick={() => fetchClients(pagination.page + 1, search, selectedStage, selectedStatus)}
               disabled={pagination.page === pagination.totalPages}
             >
               Próxima

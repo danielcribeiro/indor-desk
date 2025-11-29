@@ -108,6 +108,7 @@ export default function DashboardPage() {
       icon: Users,
       color: 'text-primary-500',
       bgColor: 'bg-primary-50',
+      href: '/clientes',
     },
     {
       title: 'Em Andamento',
@@ -115,6 +116,7 @@ export default function DashboardPage() {
       icon: Clock,
       color: 'text-amber-500',
       bgColor: 'bg-amber-50',
+      href: '/clientes?status=in_progress',
     },
     {
       title: 'Concluídos (Mês)',
@@ -122,13 +124,7 @@ export default function DashboardPage() {
       icon: CheckCircle2,
       color: 'text-green-500',
       bgColor: 'bg-green-50',
-    },
-    {
-      title: 'Etapas Ativas',
-      value: stats.clientsByStage.length,
-      icon: GitBranch,
-      color: 'text-secondary-500',
-      bgColor: 'bg-secondary-50',
+      href: '/clientes?status=completed',
     },
   ] : [];
 
@@ -151,84 +147,38 @@ export default function DashboardPage() {
       </div>
 
       {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading ? (
           <>
-            <SkeletonCard />
             <SkeletonCard />
             <SkeletonCard />
             <SkeletonCard />
           </>
         ) : (
           statCards.map((stat, index) => (
-            <Card key={stat.title} className="animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
-              <CardContent className="flex items-center gap-4">
-                <div className={`p-3 rounded-xl ${stat.bgColor}`}>
-                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-secondary-700">{stat.value}</p>
-                  <p className="text-sm text-secondary-500">{stat.title}</p>
-                </div>
-              </CardContent>
-            </Card>
+            <Link
+              key={stat.title}
+              href={stat.href}
+              className="block"
+            >
+              <Card className="animate-slide-up hover:shadow-lg transition-all cursor-pointer" style={{ animationDelay: `${index * 0.1}s` }}>
+                <CardContent className="flex items-center gap-4">
+                  <div className={`p-3 rounded-xl ${stat.bgColor}`}>
+                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-secondary-700">{stat.value}</p>
+                    <p className="text-sm text-secondary-500">{stat.title}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))
         )}
       </div>
 
       {/* Grid de conteúdo */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Funil de Etapas */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary-500" />
-              Funil de Etapas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <SkeletonFunnel />
-            ) : stats && stats.clientsByStage.length > 0 ? (
-              <div className="space-y-3">
-                {stats.clientsByStage.map((item, index) => {
-                  const maxCount = Math.max(...stats.clientsByStage.map(s => s.count), 1);
-                  const percentage = (item.count / maxCount) * 100;
-                  
-                  return (
-                    <div key={item.stageId} className="flex items-center gap-4">
-                      <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-600">
-                        {index + 1}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-secondary-700">
-                            {item.stage}
-                          </span>
-                          <span className="text-sm font-bold text-secondary-600">
-                            {item.count}
-                          </span>
-                        </div>
-                        <div className="h-2 bg-surface-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full transition-all duration-500"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-secondary-500">
-                <GitBranch className="w-12 h-12 mx-auto mb-3 text-surface-400" />
-                <p>Nenhuma etapa com clientes ainda</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Clientes Recentes */}
         <Card>
           <CardHeader>
@@ -282,6 +232,57 @@ export default function DashboardPage() {
               <div className="text-center py-8 text-secondary-500">
                 <Users className="w-12 h-12 mx-auto mb-3 text-surface-400" />
                 <p>Nenhum cliente cadastrado ainda</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Funil de Etapas */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-primary-500" />
+              Funil de Etapas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <SkeletonFunnel />
+            ) : stats && stats.clientsByStage.length > 0 ? (
+              <div className="space-y-3">
+                {stats.clientsByStage.map((item, index) => {
+                  const maxCount = Math.max(...stats.clientsByStage.map(s => s.count), 1);
+                  const percentage = (item.count / maxCount) * 100;
+
+                  return (
+                    <div key={item.stageId} className="flex items-center gap-4">
+                      <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-600">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-secondary-700">
+                            {item.stage}
+                          </span>
+                          <span className="text-sm font-bold text-secondary-600">
+                            {item.count}
+                          </span>
+                        </div>
+                        <div className="h-2 bg-surface-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-secondary-500">
+                <GitBranch className="w-12 h-12 mx-auto mb-3 text-surface-400" />
+                <p>Nenhuma etapa com clientes ainda</p>
               </div>
             )}
           </CardContent>

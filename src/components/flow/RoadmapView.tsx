@@ -27,6 +27,7 @@ interface Activity {
   description?: string | null;
   order_index: number;
   is_required: boolean;
+  allowed_profiles?: string[] | null;
   isCompleted: boolean;
   completedAt?: string | null;
   completedBy?: string | null;
