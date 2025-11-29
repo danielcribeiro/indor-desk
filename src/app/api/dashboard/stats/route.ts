@@ -1,6 +1,9 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { verifyToken } from '@/lib/auth/jwt';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,15 +47,15 @@ export async function GET(request: NextRequest) {
 
     // Para cada cliente, determinar a etapa vigente (atual)
     const clientCurrentStages = new Map<string, string>();
-    
+
     allClients?.forEach((client) => {
       const clientStages = client.client_stages || [];
-      
+
       // Primeiro, procurar uma etapa em andamento
       const inProgressStage = clientStages.find(
         (cs: { status: string }) => cs.status === 'in_progress'
       );
-      
+
       if (inProgressStage) {
         clientCurrentStages.set(client.id, inProgressStage.stage_id);
       } else {
@@ -66,7 +69,7 @@ export async function GET(request: NextRequest) {
             const orderB = Array.isArray(stageB) ? stageB[0]?.order_index : stageB?.order_index;
             return (orderB || 0) - (orderA || 0);
           });
-        
+
         if (completedStages.length > 0) {
           clientCurrentStages.set(client.id, completedStages[0].stage_id as string);
         }
@@ -75,7 +78,7 @@ export async function GET(request: NextRequest) {
 
     // Contar clientes por etapa vigente
     const clientsByStage = [];
-    
+
     if (stages) {
       for (const stage of stages) {
         let count = 0;
