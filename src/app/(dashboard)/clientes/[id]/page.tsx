@@ -695,15 +695,29 @@ export default function ClienteDetalhePage() {
                   Google Drive
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-secondary-600">
+                  Acesse a pasta do Google Drive deste cliente
+                </p>
                 <a
                   href={client.google_drive_link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-primary-600 hover:text-primary-700 transition-colors"
+                  className="block"
                 >
-                  <ExternalLink className="w-4 h-4" />
-                  <span className="text-sm truncate">{client.google_drive_link}</span>
+                  <Button className="w-full" variant="primary">
+                    <FolderOpen className="w-4 h-4" />
+                    Abrir Google Drive
+                    <ExternalLink className="w-4 h-4 ml-auto" />
+                  </Button>
+                </a>
+                <a
+                  href={client.google_drive_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-primary-600 hover:text-primary-700 transition-colors text-xs"
+                >
+                  <span className="truncate">{client.google_drive_link}</span>
                 </a>
               </CardContent>
             </Card>

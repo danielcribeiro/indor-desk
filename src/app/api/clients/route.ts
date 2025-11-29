@@ -62,12 +62,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Processar para incluir a etapa atual
-    const processedClients = clients?.map((client) => {
+    let processedClients = clients?.map((client) => {
       const stages = client.client_stages || [];
       const activeStage = stages.find((s: { status: string }) => s.status === 'in_progress');
       const lastCompletedStage = stages
         .filter((s: { status: string }) => s.status === 'completed')
-        .sort((a: { stage: { order_index: number } }, b: { stage: { order_index: number } }) => 
+        .sort((a: { stage: { order_index: number } }, b: { stage: { order_index: number } }) =>
           b.stage.order_index - a.stage.order_index
         )[0];
 
@@ -78,13 +78,23 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // Filtrar por etapa se especificado
+    if (stageId) {
+      processedClients = processedClients?.filter((client) =>
+        client.currentStage?.id === stageId
+      );
+    }
+
+    // Recalcular total após filtro de etapa
+    const filteredCount = stageId ? processedClients?.length || 0 : count || 0;
+
     return NextResponse.json({
       clients: processedClients,
       pagination: {
         page,
         limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit),
+        total: filteredCount,
+        totalPages: Math.ceil(filteredCount / limit),
       },
     });
   } catch (error) {
